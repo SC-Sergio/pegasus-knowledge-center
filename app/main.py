@@ -25,6 +25,20 @@ def count_indexed_chunks() -> int:
         return 0
 
 
+def get_relevance_label(distance: float) -> tuple[str, str]:
+    if distance <= 0.80:
+        return "Alta", "#34D399"
+
+    if distance <= 1.10:
+        return "Media", "#FBBF24"
+
+    return "Baja", "#F87171"
+
+
+def format_source_title(source_name: str) -> str:
+    return source_name.replace(".pdf", "")
+
+
 def render_css() -> None:
     st.markdown(
         """
@@ -185,7 +199,9 @@ def render_sidebar(pdf_count: int, indexed_chunks: int) -> None:
         st.divider()
 
         st.markdown("### Flujo")
-        st.caption("PDF → extracción → chunks → embeddings → Chroma → Gemini → respuesta con fuentes")
+        st.caption(
+            "PDF → extracción → chunks → embeddings → Chroma → Gemini → respuesta con fuentes"
+        )
 
 
 def render_hero() -> None:
@@ -235,6 +251,8 @@ def render_sources(result) -> None:
         return
 
     avg_distance = sum(source.distance for source in result.sources) / len(result.sources)
+    best_source = min(result.sources, key=lambda item: item.distance)
+    best_label, _ = get_relevance_label(best_source.distance)
 
     source_col_1, source_col_2, source_col_3 = st.columns(3)
 
@@ -245,36 +263,62 @@ def render_sources(result) -> None:
         st.metric("Distancia promedio", f"{avg_distance:.4f}")
 
     with source_col_3:
-        best_source = min(result.sources, key=lambda item: item.distance)
-        st.metric("Mejor distancia", f"{best_source.distance:.4f}")
+        st.metric("Mejor relevancia", best_label)
 
     st.markdown(
         """
         <div class="evidence-header">
-            Las fuentes siguientes son los fragmentos recuperados desde Chroma. La respuesta final
-            debe basarse solo en evidencia presente en estos documentos.
+            Las fuentes siguientes son los fragmentos recuperados desde Chroma.
+            La relevancia se calcula de forma aproximada según la distancia semántica:
+            menor distancia significa mayor similitud con la pregunta.
         </div>
         """,
         unsafe_allow_html=True,
     )
 
     for index, source in enumerate(result.sources, start=1):
+        relevance_label, relevance_color = get_relevance_label(source.distance)
+        clean_title = format_source_title(source.source)
+
         label = (
-            f"Fuente {index}: {source.source} · "
-            f"Página {source.page} · Chunk {source.chunk_index}"
+            f"Fuente {index}: {clean_title} · "
+            f"Página {source.page} · Relevancia {relevance_label}"
         )
 
         with st.expander(label, expanded=index == 1):
-            meta_col_1, meta_col_2, meta_col_3 = st.columns(3)
-
-            with meta_col_1:
-                st.caption(f"Documento: {source.source}")
-
-            with meta_col_2:
-                st.caption(f"Página: {source.page}")
-
-            with meta_col_3:
-                st.caption(f"Distancia: {source.distance:.4f}")
+            st.markdown(
+                f"""
+                <div style="
+                    padding: 0.85rem 1rem;
+                    border-radius: 14px;
+                    background: rgba(15, 23, 42, 0.65);
+                    border: 1px solid rgba(125, 211, 252, 0.16);
+                    margin-bottom: 0.75rem;
+                ">
+                    <div style="font-weight: 800; color: #F8FBFF; margin-bottom: 0.35rem;">
+                        {clean_title}
+                    </div>
+                    <div style="color: #AFC2D8; font-size: 0.9rem;">
+                        Página {source.page} · Chunk {source.chunk_index} ·
+                        Distancia {source.distance:.4f}
+                    </div>
+                    <div style="
+                        display: inline-block;
+                        margin-top: 0.55rem;
+                        padding: 0.22rem 0.55rem;
+                        border-radius: 999px;
+                        color: {relevance_color};
+                        background: rgba(255, 255, 255, 0.05);
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                        font-size: 0.82rem;
+                        font-weight: 800;
+                    ">
+                        ● Relevancia {relevance_label}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
             st.write(source.text)
 
