@@ -1,0 +1,12 @@
+[server]
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "dark"
+primaryColor = "#5CC8FF"
+backgroundColor = "#0B1020"
+secondaryBackgroundColor = "#121A2B"
+textColor = "#E8EEF9"
