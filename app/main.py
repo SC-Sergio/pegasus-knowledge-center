@@ -6,7 +6,7 @@ import streamlit as st
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from app.rag.pipeline import build_rag_context
+from app.rag.pipeline import answer_question
 
 VECTORSTORE_DIR = PROJECT_ROOT / "vectorstore" / "chroma"
 
@@ -26,13 +26,15 @@ with st.sidebar:
     st.success("Índice vectorial listo")
     st.caption("Fuente: PDFs técnicos en data/raw")
     st.divider()
-    st.markdown("**Modo actual:** recuperación documental")
+    st.markdown("**Modo actual:** RAG con respuesta generativa")
     st.markdown("**Vector store:** Chroma local")
-    st.markdown("**LLM:** pendiente de conectar")
+    st.markdown("**LLM:** Gemini 2.5 Flash")
+    st.divider()
+    st.caption("Pipeline: PDF → chunks → embeddings → Chroma → Gemini")
 
 st.info(
-    "Esta versión recupera contexto desde los PDFs y muestra fuentes. "
-    "La generación final con LLM se conectará en el siguiente paso."
+    "Esta versión recupera contexto desde los PDFs, genera una respuesta con Gemini "
+    "y muestra las fuentes utilizadas."
 )
 
 question = st.text_area(
@@ -48,27 +50,26 @@ top_k = st.slider(
     value=4,
 )
 
-if st.button("Buscar en documentación", type="primary"):
+if st.button("Responder con IA", type="primary"):
     if not question.strip():
         st.warning("Escribe una pregunta antes de buscar.")
     else:
-        with st.spinner("Buscando evidencia en la documentación técnica..."):
-            rag_context = build_rag_context(
+        with st.spinner("Consultando documentación y generando respuesta con Gemini..."):
+            result = answer_question(
                 question=question,
                 persist_dir=VECTORSTORE_DIR,
                 top_k=top_k,
             )
 
-        st.subheader("Contexto recuperado")
-        st.write(
-            "Estos son los fragmentos más relevantes encontrados en la documentación. "
-            "En el próximo paso, un LLM usará este contexto para redactar la respuesta final."
-        )
+        st.subheader("Respuesta del agente")
+        st.markdown(result.answer)
 
-        if not rag_context.sources:
+        st.subheader("Fuentes utilizadas")
+
+        if not result.sources:
             st.error("No se encontraron fuentes relevantes.")
         else:
-            for index, source in enumerate(rag_context.sources, start=1):
+            for index, source in enumerate(result.sources, start=1):
                 with st.expander(
                     f"Fuente {index}: {source.source} · Página {source.page} · Chunk {source.chunk_index}",
                     expanded=index == 1,
@@ -76,9 +77,9 @@ if st.button("Buscar en documentación", type="primary"):
                     st.caption(f"Distancia semántica: {source.distance:.4f}")
                     st.write(source.text)
 
-            st.subheader("Prompt/contexto preparado para el LLM")
-            st.text_area(
-                "Contexto RAG",
-                value=rag_context.context,
-                height=320,
-            )
+            with st.expander("Ver contexto completo enviado al LLM"):
+                st.text_area(
+                    "Contexto RAG",
+                    value=result.context,
+                    height=320,
+                )

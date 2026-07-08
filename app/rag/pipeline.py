@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from app.rag.llm import generate_answer_with_gemini
 from app.rag.vector_store import search_similar_chunks
 
 
@@ -18,6 +19,14 @@ class RagContext:
     question: str
     context: str
     sources: list[RagSource]
+
+
+@dataclass(frozen=True)
+class RagAnswer:
+    question: str
+    answer: str
+    sources: list[RagSource]
+    context: str
 
 
 def build_rag_context(
@@ -69,4 +78,36 @@ def build_rag_context(
         question=question,
         context=context,
         sources=sources,
+    )
+
+
+def answer_question(
+    question: str,
+    persist_dir: str | Path = "vectorstore/chroma",
+    top_k: int = 4,
+) -> RagAnswer:
+    rag_context = build_rag_context(
+        question=question,
+        persist_dir=persist_dir,
+        top_k=top_k,
+    )
+
+    if not rag_context.sources:
+        return RagAnswer(
+            question=question,
+            answer="No encontré información relevante en la documentación cargada.",
+            sources=[],
+            context="",
+        )
+
+    answer = generate_answer_with_gemini(
+        question=question,
+        context=rag_context.context,
+    )
+
+    return RagAnswer(
+        question=question,
+        answer=answer,
+        sources=rag_context.sources,
+        context=rag_context.context,
     )
