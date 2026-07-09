@@ -4,11 +4,15 @@ Agente RAG para consultar documentación técnica interna usando **Python**, **S
 
 El proyecto fue construido como Challenge Final **Alura Agente**, simulando una solución empresarial para que equipos de ingeniería, SRE y DevOps puedan hacer preguntas en lenguaje natural sobre documentos internos y recibir respuestas trazables con fuentes.
 
+La solución utiliza el corpus **Santos Pegasus Soluciones**, provisto como material sugerido por Alura para el challenge, y construye sobre ese corpus una aplicación RAG funcional, visual, dockerizada y preparada para despliegue en Oracle Cloud Infrastructure.
+
 ---
 
 ## Vista general
 
-**Pegasus Engineering Knowledge Center** es un copiloto interno de documentación técnica para una empresa ficticia llamada **Santo Pegasus Soluciones**.
+**Pegasus Engineering Knowledge Center** es un copiloto interno de documentación técnica construido sobre el corpus **Santos Pegasus Soluciones**, material sugerido por Alura para el Challenge Final **Alura Agente**.
+
+El corpus representa una empresa tecnológica ficticia especializada en desarrollo de software escalable, arquitectura de microservicios, soluciones de inteligencia artificial, ingeniería front-end/back-end, prácticas SRE y estándares de seguridad en infraestructura de nube.
 
 El sistema permite:
 
@@ -26,7 +30,7 @@ El sistema permite:
 
 ## Caso de uso
 
-En una empresa tecnológica, los equipos pierden tiempo buscando información en manuales, guías técnicas, protocolos y documentos internos.
+En una empresa tecnológica, los equipos de ingeniería, SRE, DevOps y desarrollo suelen perder tiempo buscando información en manuales, guías técnicas, protocolos de incidentes y documentación interna.
 
 Este agente resuelve ese problema permitiendo consultas como:
 
@@ -36,11 +40,32 @@ Este agente resuelve ese problema permitiendo consultas como:
 - ¿Qué significa aplicar privilegio mínimo en microservicios?
 - ¿Qué debe incluir un post-mortem?
 
+El objetivo es reducir la fricción de búsqueda documental y entregar respuestas basadas en evidencia, mostrando siempre las fuentes utilizadas.
+
+---
+
+## Origen del corpus documental
+
+Este proyecto utiliza el corpus **Santos Pegasus Soluciones**, provisto como material sugerido por Alura para el Challenge Final **Alura Agente**.
+
+Santos Pegasus Soluciones representa una empresa ficticia de tecnología especializada en:
+
+- desarrollo de software escalable;
+- arquitectura de microservicios;
+- soluciones de inteligencia artificial;
+- ingeniería back-end;
+- ingeniería front-end;
+- respuesta a incidentes;
+- prácticas SRE;
+- seguridad y operación en infraestructura de nube.
+
+> Nota: los documentos representan una empresa ficticia y se utilizan con fines educativos para demostrar una solución RAG funcional. No contienen información real ni confidencial de una empresa existente.
+
 ---
 
 ## Documentos utilizados
 
-La base de conocimiento se construye a partir de documentos PDF internos ubicados en:
+La base de conocimiento se construye a partir de documentos PDF técnicos ubicados en:
 
 ```text
 data/raw/
@@ -55,6 +80,8 @@ Protocolo de respuesta a incidentes.pdf
 Santo pegasus soluciones guia oficial de ingenieria front end.pdf
 Santo pegasus soluciones Guía Oficial de Ingeniería Backend.pdf
 ```
+
+Estos documentos permiten que el agente responda preguntas sobre onboarding, arquitectura, incidentes, front-end, back-end, seguridad, observabilidad y buenas prácticas técnicas.
 
 ---
 
@@ -97,6 +124,7 @@ Interfaz Streamlit con fuentes y evidencia
 | Variables de entorno | python-dotenv |
 | Contenedores | Docker |
 | Control de versiones | Git + GitHub |
+| Nube objetivo | Oracle Cloud Infrastructure |
 
 ---
 
@@ -143,10 +171,10 @@ pegasus-knowledge-center/
 
 Para ejecución local:
 
-- Python 3.12
-- Git
-- Docker Desktop, opcional para ejecución en contenedor
-- Una API key de Gemini configurada en `.env`
+- Python 3.12.
+- Git.
+- Docker Desktop, opcional para ejecución en contenedor.
+- Una API key de Gemini configurada en `.env`.
 
 ---
 
@@ -358,6 +386,7 @@ Manual de Onboarding para nuevos desarrolladores.pdf, página 31.
 - Contexto completo enviado al LLM.
 - Ejecución local y con Docker.
 - Historial de commits claro y progresivo.
+- Preparado para despliegue en OCI Compute.
 
 ---
 
@@ -433,6 +462,7 @@ Buenas prácticas aplicadas:
 - [x] Crear interfaz visual profesional.
 - [x] Agregar Dockerfile.
 - [x] Subir repositorio a GitHub.
+- [x] Mejorar README.
 - [ ] Mejorar README con capturas.
 - [ ] Desplegar en OCI Compute.
 - [ ] Agregar evidencia pública del deploy.
