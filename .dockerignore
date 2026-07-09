@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.git/
+.gitignore
+vectorstore/
+data/processed/
+.DS_Store
+Thumbs.db
+.streamlit/secrets.toml
