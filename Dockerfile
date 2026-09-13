@@ -1,25 +1,35 @@
-FROM python:3.12-slim
+FROM python:3.12.11-slim-bookworm
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PIP_NO_CACHE_DIR=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    HOME=/home/pegasus
 
 WORKDIR /app
 
-COPY requirements.txt .
+RUN groupadd --gid 10001 pegasus \
+    && useradd --uid 10001 --gid 10001 --create-home --shell /usr/sbin/nologin pegasus
 
-RUN pip install --upgrade pip \
-    && pip install -r requirements.txt
+COPY requirements.txt ./
 
-COPY app ./app
-COPY data ./data
-COPY docs ./docs
-COPY scripts ./scripts
-COPY .streamlit ./.streamlit
+RUN python -m pip install --upgrade pip \
+    && python -m pip install -r requirements.txt
 
-RUN mkdir -p vectorstore/chroma \
-    && python scripts/build_index.py
+COPY --chown=pegasus:pegasus app ./app
+COPY --chown=pegasus:pegasus data ./data
+COPY --chown=pegasus:pegasus scripts ./scripts
+COPY --chown=pegasus:pegasus .streamlit ./.streamlit
+
+RUN mkdir -p /app/vectorstore/chroma \
+    && chown -R pegasus:pegasus /app/vectorstore
+
+USER pegasus
+
+RUN python scripts/build_index.py
 
 EXPOSE 8501
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8501/_stcore/health', timeout=3)"
 
 CMD ["streamlit", "run", "app/main.py", "--server.address=0.0.0.0", "--server.port=8501", "--server.headless=true"]

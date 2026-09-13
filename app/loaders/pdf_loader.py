@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from pathlib import Path
+import re
 
 from pypdf import PdfReader
 
@@ -13,7 +16,17 @@ class LoadedPage:
 
 
 def clean_text(text: str) -> str:
-    return " ".join((text or "").split())
+    """Normaliza PDF text sin destruir por completo los límites de párrafo."""
+    normalized = (text or "").replace("\r\n", "\n").replace("\r", "\n")
+    paragraphs = re.split(r"\n\s*\n+", normalized)
+
+    cleaned_paragraphs: list[str] = []
+    for paragraph in paragraphs:
+        compact = " ".join(paragraph.split())
+        if compact:
+            cleaned_paragraphs.append(compact)
+
+    return "\n\n".join(cleaned_paragraphs)
 
 
 def list_pdf_files(data_dir: str | Path) -> list[Path]:

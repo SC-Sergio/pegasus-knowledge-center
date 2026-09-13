@@ -1,17 +1,22 @@
+from __future__ import annotations
+
 from functools import lru_cache
 
 from sentence_transformers import SentenceTransformer
 
-
-DEFAULT_EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-
-
-@lru_cache(maxsize=1)
-def get_embedding_model(model_name: str = DEFAULT_EMBEDDING_MODEL) -> SentenceTransformer:
-    return SentenceTransformer(model_name)
+from app.config import get_settings
 
 
-def embed_texts(texts: list[str], model_name: str = DEFAULT_EMBEDDING_MODEL) -> list[list[float]]:
+@lru_cache(maxsize=2)
+def get_embedding_model(model_name: str | None = None) -> SentenceTransformer:
+    resolved_name = model_name or get_settings().embedding_model
+    return SentenceTransformer(resolved_name)
+
+
+def embed_texts(
+    texts: list[str],
+    model_name: str | None = None,
+) -> list[list[float]]:
     if not texts:
         return []
 
@@ -26,6 +31,6 @@ def embed_texts(texts: list[str], model_name: str = DEFAULT_EMBEDDING_MODEL) -> 
     return embeddings.tolist()
 
 
-def embed_query(query: str, model_name: str = DEFAULT_EMBEDDING_MODEL) -> list[float]:
+def embed_query(query: str, model_name: str | None = None) -> list[float]:
     vectors = embed_texts([query], model_name=model_name)
     return vectors[0] if vectors else []
