@@ -20,10 +20,12 @@ COPY --chown=pegasus:pegasus data ./data
 COPY --chown=pegasus:pegasus scripts ./scripts
 COPY --chown=pegasus:pegasus .streamlit ./.streamlit
 
+RUN mkdir -p /app/vectorstore/chroma \
+    && chown -R pegasus:pegasus /app/vectorstore
+
 USER pegasus
 
-RUN mkdir -p vectorstore/chroma \
-    && python scripts/build_index.py
+RUN python scripts/build_index.py
 
 EXPOSE 8501
 
