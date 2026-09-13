@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from app.loaders.pdf_loader import LoadedPage
@@ -12,7 +14,23 @@ class TextChunk:
     text: str
 
 
-def split_text_by_size(text: str, chunk_size: int = 1200, chunk_overlap: int = 180) -> list[str]:
+def _best_split_point(text: str, lower_bound: int, upper_bound: int) -> int:
+    """Busca un corte natural cercano al límite superior."""
+    candidates = ("\n\n", "\n", ". ", "? ", "! ", "; ", ": ", ", ", " ")
+
+    for separator in candidates:
+        position = text.rfind(separator, lower_bound, upper_bound)
+        if position >= lower_bound:
+            return position + len(separator)
+
+    return upper_bound
+
+
+def split_text_by_size(
+    text: str,
+    chunk_size: int = 1100,
+    chunk_overlap: int = 160,
+) -> list[str]:
     if not text:
         return []
 
@@ -25,26 +43,40 @@ def split_text_by_size(text: str, chunk_size: int = 1200, chunk_overlap: int = 1
     if chunk_overlap >= chunk_size:
         raise ValueError("chunk_overlap debe ser menor que chunk_size.")
 
+    normalized = text.strip()
     chunks: list[str] = []
     start = 0
-    text_length = len(text)
 
-    while start < text_length:
-        end = start + chunk_size
-        chunk = text[start:end].strip()
+    while start < len(normalized):
+        hard_end = min(start + chunk_size, len(normalized))
 
+        if hard_end == len(normalized):
+            end = hard_end
+        else:
+            search_start = start + max(chunk_size // 2, chunk_overlap + 1)
+            end = _best_split_point(normalized, search_start, hard_end)
+            if end <= start:
+                end = hard_end
+
+        chunk = normalized[start:end].strip()
         if chunk:
             chunks.append(chunk)
 
-        start = end - chunk_overlap
+        if end >= len(normalized):
+            break
+
+        next_start = max(0, end - chunk_overlap)
+        if next_start <= start:
+            next_start = end
+        start = next_start
 
     return chunks
 
 
 def chunk_loaded_pages(
     pages: list[LoadedPage],
-    chunk_size: int = 1200,
-    chunk_overlap: int = 180,
+    chunk_size: int = 1100,
+    chunk_overlap: int = 160,
 ) -> list[TextChunk]:
     chunks: list[TextChunk] = []
 

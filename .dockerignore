@@ -3,7 +3,12 @@ __pycache__/
 *.pyc
 .env
 .git/
+.github/
 .gitignore
+.pytest_cache/
+.ruff_cache/
+tests/
+docs/
 vectorstore/
 data/processed/
 .DS_Store

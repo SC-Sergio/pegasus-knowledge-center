@@ -1,36 +1,46 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 import chromadb
 
+from app.config import get_settings
 from app.rag.chunking import TextChunk
 from app.rag.embeddings import embed_query, embed_texts
 
-
 DEFAULT_COLLECTION_NAME = "pegasus_knowledge"
+COLLECTION_CONFIGURATION = {"hnsw": {"space": "cosine"}}
 
 
-def get_chroma_client(persist_dir: str | Path = "vectorstore/chroma"):
-    persist_path = Path(persist_dir)
-    persist_path.mkdir(parents=True, exist_ok=True)
-    return chromadb.PersistentClient(path=str(persist_path))
+def get_chroma_client(persist_dir: str | Path | None = None):
+    resolved_dir = Path(persist_dir or get_settings().vectorstore_dir)
+    resolved_dir.mkdir(parents=True, exist_ok=True)
+    return chromadb.PersistentClient(path=str(resolved_dir))
 
 
 def get_or_create_collection(
     collection_name: str = DEFAULT_COLLECTION_NAME,
-    persist_dir: str | Path = "vectorstore/chroma",
+    persist_dir: str | Path | None = None,
 ):
     client = get_chroma_client(persist_dir)
-    return client.get_or_create_collection(name=collection_name)
+    return client.get_or_create_collection(
+        name=collection_name,
+        configuration=COLLECTION_CONFIGURATION,
+    )
 
 
 def build_chunk_id(chunk: TextChunk) -> str:
-    safe_source = chunk.source.replace(" ", "_").replace("/", "_").replace("\\", "_")
+    safe_source = (
+        chunk.source.replace(" ", "_")
+        .replace("/", "_")
+        .replace("\\", "_")
+    )
     return f"{safe_source}_p{chunk.page}_c{chunk.chunk_index}"
 
 
 def reset_collection(
     collection_name: str = DEFAULT_COLLECTION_NAME,
-    persist_dir: str | Path = "vectorstore/chroma",
+    persist_dir: str | Path | None = None,
 ) -> None:
     client = get_chroma_client(persist_dir)
 
@@ -43,7 +53,7 @@ def reset_collection(
 def index_chunks(
     chunks: list[TextChunk],
     collection_name: str = DEFAULT_COLLECTION_NAME,
-    persist_dir: str | Path = "vectorstore/chroma",
+    persist_dir: str | Path | None = None,
     batch_size: int = 32,
 ) -> int:
     collection = get_or_create_collection(
@@ -85,19 +95,27 @@ def index_chunks(
 def search_similar_chunks(
     query: str,
     collection_name: str = DEFAULT_COLLECTION_NAME,
-    persist_dir: str | Path = "vectorstore/chroma",
-    top_k: int = 4,
+    persist_dir: str | Path | None = None,
+    top_k: int | None = None,
+    max_distance: float | None = None,
 ) -> list[dict]:
+    settings = get_settings()
     collection = get_or_create_collection(
         collection_name=collection_name,
         persist_dir=persist_dir,
     )
 
     query_embedding = embed_query(query)
+    resolved_top_k = top_k or settings.rag_top_k
+    resolved_max_distance = (
+        settings.rag_max_cosine_distance
+        if max_distance is None
+        else max_distance
+    )
 
     results = collection.query(
         query_embeddings=[query_embedding],
-        n_results=top_k,
+        n_results=resolved_top_k,
         include=["documents", "metadatas", "distances"],
     )
 
@@ -108,11 +126,16 @@ def search_similar_chunks(
     distances = results.get("distances", [[]])[0]
 
     for document, metadata, distance in zip(documents, metadatas, distances):
+        numeric_distance = float(distance)
+
+        if numeric_distance > resolved_max_distance:
+            continue
+
         matches.append(
             {
                 "text": document,
                 "metadata": metadata,
-                "distance": distance,
+                "distance": numeric_distance,
             }
         )
 
